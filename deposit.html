@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Deposit - MZ PLAY</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="brand">MZ PLAY <span class="badge">DEPOSIT</span></div>
+      <div class="nav-links">
+        <a class="pill" href="./index.html">Lobby</a>
+        <a class="pill" href="./wallet.html">Wallet</a>
+        <a class="pill" href="./crash.html">Crash</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="h1" style="font-size:22px;margin:0">充值买点数（马来西亚）</div>
+      <div class="muted">演示版：转账后你在后台手动加点数（下一步我给你做管理员审核页）。</div>
+
+      <div style="margin-top:12px">
+        <label class="small">选择金额（RM）</label>
+        <div class="row" style="margin-top:8px">
+          <button class="btn btn-ghost" onclick="pick(10)">RM10</button>
+          <button class="btn btn-ghost" onclick="pick(30)">RM30</button>
+          <button class="btn btn-ghost" onclick="pick(50)">RM50</button>
+          <button class="btn btn-ghost" onclick="pick(100)">RM100</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="small">或自定义金额（RM）</label>
+        <input class="input" id="amt" placeholder="例如 20" inputmode="numeric"/>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn" onclick="createOrder()">生成订单号</button>
+        <button class="btn btn-ghost" onclick="location.href='./wallet.html'">返回 Wallet</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="h1" style="font-size:22px;margin:0">转账信息（你要改成你自己的）</div>
+      <div class="small" style="margin-top:8px">
+        ✅ 方式：DuitNow / Bank Transfer<br/>
+        ✅ 收款人：<b>YOUR NAME</b><br/>
+        ✅ 银行：<b>MAYBANK</b><br/>
+        ✅ 账号：<b>1234 5678 90</b><br/>
+        ✅ DuitNow：<b>012-3456789</b><br/>
+        <br/>
+        转账时备注：<b id="orderno">（先生成订单号）</b>
+      </div>
+      <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0">
+      <div class="muted small">
+        转账后：把回执截图发给客服（Telegram/WhatsApp），并附上订单号。  
+        （下一步我给你做“上传回执 + 管理员审核发点数”）
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="h1" style="font-size:22px;margin:0">我的充值订单（本地记录）</div>
+      <table class="table">
+        <thead><tr><th>时间</th><th>订单号</th><th>金额</th><th>状态</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="small">当前是演示记录（浏览器本地）。接后端后会变成真实订单。</div>
+    </div>
+  </div>
+
+<script>
+  const ORD="mz_deposit_orders";
+  function pick(v){ document.getElementById("amt").value = v; }
+
+  function genOrder(){
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth()+1).padStart(2,"0");
+    const d = String(t.getDate()).padStart(2,"0");
+    const rand = Math.random().toString(16).slice(2,8).toUpperCase();
+    return `DP${y}${m}${d}-${rand}`;
+  }
+
+  function createOrder(){
+    const amt = parseInt(document.getElementById("amt").value || "0", 10);
+    if(!amt || amt <= 0){ alert("请输入正确金额"); return; }
+    const orderNo = genOrder();
+    document.getElementById("orderno").textContent = orderNo;
+
+    const arr = JSON.parse(localStorage.getItem(ORD)||"[]");
+    arr.unshift({t:new Date().toLocaleString(), orderNo, amt, status:"PENDING"});
+    localStorage.setItem(ORD, JSON.stringify(arr.slice(0,30)));
+    render();
+    alert("已生成订单号，请转账并备注订单号");
+  }
+
+  function render(){
+    const arr = JSON.parse(localStorage.getItem(ORD)||"[]");
+    document.getElementById("rows").innerHTML = arr.map(x =>
+      `<tr><td>${x.t}</td><td>${x.orderNo}</td><td>RM${x.amt}</td><td>${x.status}</td></tr>`
+    ).join("");
+  }
+  render();
+</script>
+</body>
+</html>
