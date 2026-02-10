@@ -3,107 +3,130 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Deposit - MZ PLAY</title>
+  <title>Deposit - Winplay</title>
   <link rel="stylesheet" href="./style.css"/>
 </head>
 <body>
   <div class="nav">
     <div class="nav-inner">
-      <div class="brand">MZ PLAY <span class="badge">DEPOSIT</span></div>
+      <div class="brand"><span class="logo">W</span> WINPLAY <span class="badge">DEPOSIT</span></div>
       <div class="nav-links">
         <a class="pill" href="./index.html">Lobby</a>
         <a class="pill" href="./wallet.html">Wallet</a>
-        <a class="pill" href="./crash.html">Crash</a>
+        <a class="pill" href="./admin.html">Admin</a>
       </div>
     </div>
   </div>
 
   <div class="container">
     <div class="card">
-      <div class="h1" style="font-size:22px;margin:0">充值买点数（马来西亚）</div>
-      <div class="muted">演示版：转账后你在后台手动加点数（下一步我给你做管理员审核页）。</div>
+      <h2 style="margin:0 0 6px">充值买点数（手动审核版）</h2>
+      <div class="muted">你提交订单 + 回执链接，管理员在 Admin 页面通过后自动加点数。</div>
 
-      <div style="margin-top:12px">
-        <label class="small">选择金额（RM）</label>
-        <div class="row" style="margin-top:8px">
-          <button class="btn btn-ghost" onclick="pick(10)">RM10</button>
-          <button class="btn btn-ghost" onclick="pick(30)">RM30</button>
-          <button class="btn btn-ghost" onclick="pick(50)">RM50</button>
-          <button class="btn btn-ghost" onclick="pick(100)">RM100</button>
-        </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn btn-ghost" onclick="pick(10)">RM10</button>
+        <button class="btn btn-ghost" onclick="pick(30)">RM30</button>
+        <button class="btn btn-ghost" onclick="pick(50)">RM50</button>
+        <button class="btn btn-ghost" onclick="pick(100)">RM100</button>
       </div>
 
       <div style="margin-top:12px">
-        <label class="small">或自定义金额（RM）</label>
+        <div class="small">金额（RM）</div>
         <input class="input" id="amt" placeholder="例如 20" inputmode="numeric"/>
       </div>
 
+      <div style="margin-top:12px">
+        <div class="small">回执链接（可用 Google Drive / Imgur / Telegram 图片链接）</div>
+        <input class="input" id="receipt" placeholder="https://..."/>
+      </div>
+
       <div class="row" style="margin-top:12px">
-        <button class="btn" onclick="createOrder()">生成订单号</button>
+        <button class="btn" onclick="submitOrder()">提交订单</button>
         <button class="btn btn-ghost" onclick="location.href='./wallet.html'">返回 Wallet</button>
       </div>
+
+      <div class="small" id="msg" style="margin-top:10px"></div>
     </div>
 
     <div class="card" style="margin-top:14px">
-      <div class="h1" style="font-size:22px;margin:0">转账信息（你要改成你自己的）</div>
-      <div class="small" style="margin-top:8px">
+      <h2 style="margin:0 0 6px">转账信息（你要改成你自己的）</h2>
+      <div class="small">
         ✅ 方式：DuitNow / Bank Transfer<br/>
         ✅ 收款人：<b>ChanYiHang</b><br/>
         ✅ 银行：<b>PublicBank</b><br/>
-        ✅ 账号：<b>4848100107510972</b><br/>
+        ✅ 账号：<b>5113274731</b><br/>
         ✅ DuitNow：<b>170126621212</b><br/>
-        <br/>
-        转账时备注：<b id="orderno">（先生成订单号）</b>
       </div>
-      <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0">
-      <div class="muted small">
-        转账后：把回执截图发给客服（Telegram/WhatsApp），并附上订单号。  
-        （下一步我给你做“上传回执 + 管理员审核发点数”）
+      <div class="muted small" style="margin-top:8px">
+        * 这是点数充值演示站，不提供现金提现。
       </div>
     </div>
 
     <div class="card" style="margin-top:14px">
-      <div class="h1" style="font-size:22px;margin:0">我的充值订单（本地记录）</div>
+      <h2 style="margin:0 0 6px">我的订单</h2>
       <table class="table">
         <thead><tr><th>时间</th><th>订单号</th><th>金额</th><th>状态</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
-      <div class="small">当前是演示记录（浏览器本地）。接后端后会变成真实订单。</div>
     </div>
   </div>
 
 <script>
-  const ORD="mz_deposit_orders";
-  function pick(v){ document.getElementById("amt").value = v; }
+  const USERS="wp_users";
+  const SESSION="wp_session";
+  const DEPS="wp_deposits";
 
-  function genOrder(){
-    const t = new Date();
-    const y = t.getFullYear();
-    const m = String(t.getMonth()+1).padStart(2,"0");
-    const d = String(t.getDate()).padStart(2,"0");
-    const rand = Math.random().toString(16).slice(2,8).toUpperCase();
-    return `DP${y}${m}${d}-${rand}`;
+  function loadUsers(){ return JSON.parse(localStorage.getItem(USERS)||"[]"); }
+  function getSession(){ return JSON.parse(localStorage.getItem(SESSION)||"null"); }
+  function currentUser(){
+    const s=getSession(); if(!s) return null;
+    return loadUsers().find(u=>u.email===s.email) || null;
   }
 
-  function createOrder(){
-    const amt = parseInt(document.getElementById("amt").value || "0", 10);
-    if(!amt || amt <= 0){ alert("请输入正确金额"); return; }
-    const orderNo = genOrder();
-    document.getElementById("orderno").textContent = orderNo;
+  function pick(v){ document.getElementById("amt").value = v; }
+  function genOrder(){
+    const t=new Date();
+    const y=t.getFullYear(), m=String(t.getMonth()+1).padStart(2,"0"), d=String(t.getDate()).padStart(2,"0");
+    const rand=Math.random().toString(16).slice(2,8).toUpperCase();
+    return `WP${y}${m}${d}-${rand}`;
+  }
 
-    const arr = JSON.parse(localStorage.getItem(ORD)||"[]");
-    arr.unshift({t:new Date().toLocaleString(), orderNo, amt, status:"PENDING"});
-    localStorage.setItem(ORD, JSON.stringify(arr.slice(0,30)));
+  function submitOrder(){
+    const u=currentUser(); if(!u) return location.href="./auth.html";
+    const amt=parseInt(document.getElementById("amt").value||"0",10);
+    const receipt=(document.getElementById("receipt").value||"").trim();
+    if(!amt || amt<=0) return alert("请输入正确金额");
+    if(receipt && !receipt.startsWith("http")) return alert("回执链接请以 http 开头（或留空）");
+
+    const points = amt * 100;
+    const orderNo = genOrder();
+
+    const arr = JSON.parse(localStorage.getItem(DEPS)||"[]");
+    arr.unshift({
+      t:new Date().toLocaleString(),
+      orderNo,
+      email:u.email,
+      amt,
+      points,
+      receipt,
+      status:"PENDING"
+    });
+    localStorage.setItem(DEPS, JSON.stringify(arr.slice(0,200)));
+    document.getElementById("msg").textContent = `已提交：${orderNo}（等待管理员审核）`;
+    document.getElementById("amt").value="";
+    document.getElementById("receipt").value="";
     render();
-    alert("已生成订单号，请转账并备注订单号");
   }
 
   function render(){
-    const arr = JSON.parse(localStorage.getItem(ORD)||"[]");
+    const u=currentUser(); if(!u) return;
+    const arr = JSON.parse(localStorage.getItem(DEPS)||"[]").filter(x=>x.email===u.email).slice(0,30);
     document.getElementById("rows").innerHTML = arr.map(x =>
-      `<tr><td>${x.t}</td><td>${x.orderNo}</td><td>RM${x.amt}</td><td>${x.status}</td></tr>`
+      `<tr><td>${x.t}</td><td>${x.orderNo}</td><td>RM${x.amt}</td>
+       <td>${x.status}</td></tr>`
     ).join("");
   }
+
   render();
 </script>
 </body>
