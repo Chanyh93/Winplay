@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Crash - MZ PLAY</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="brand">MZ PLAY <span class="badge">CRASH</span></div>
+      <div class="nav-links">
+        <a class="pill" href="./index.html">Lobby</a>
+        <a class="pill" href="./wallet.html">Wallet</a>
+        <a class="pill" href="./deposit.html">Deposit</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:flex-end">
+        <div>
+          <div class="muted">点数余额</div>
+          <div class="kpi" id="bal">0</div>
+        </div>
+        <div style="text-align:right">
+          <div class="muted">当前倍率</div>
+          <div class="kpi" id="mult">1.00x</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; padding:14px; border-radius:16px; border:1px solid rgba(255,255,255,.08); background:rgba(0,0,0,.22)">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <div class="muted">状态</div>
+            <div class="kpi" id="status" style="font-size:18px">READY</div>
+          </div>
+          <div>
+            <div class="muted">本局爆点</div>
+            <div class="kpi" id="bust">?</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <div style="flex:1; min-width:220px">
+          <div class="small">下注点数</div>
+          <input class="input" id="stake" placeholder="例如 100" inputmode="numeric"/>
+        </div>
+        <div style="flex:1; min-width:220px">
+          <div class="small">自动提现倍率（可空）</div>
+          <input class="input" id="auto" placeholder="例如 2.00" inputmode="decimal"/>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnBet" onclick="placeBet()">下注开始</button>
+        <button class="btn btn-ghost" id="btnCash" onclick="cashout()" disabled>Cashout</button>
+        <button class="btn btn-ghost" onclick="location.href='./wallet.html'">去 Wallet</button>
+      </div>
+
+      <div class="small" id="msg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="h1" style="font-size:22px;margin:0">最近 10 局（本地）</div>
+      <table class="table">
+        <thead><tr><th>时间</th><th>爆点</th><th>结果</th></tr></thead>
+        <tbody id="history"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  const BAL="mz_balance";
+  const LOG="mz_log";
+  const HIS="mz_crash_history";
+
+  let running=false, interval=null;
+  let current=1.00;
+  let bustAt=0;
+  let betStake=0;
+  let cashed=false;
+  let autoCash=null;
+
+  function nowStr(){ return new Date().toLocaleString(); }
+  function getBal(){
+    if(!localStorage.getItem(BAL)) localStorage.setItem(BAL,"5000");
+    return parseInt(localStorage.getItem(BAL)||"0",10);
+  }
+  function setBal(v){ localStorage.setItem(BAL,String(v)); document.getElementById("bal").textContent=v; }
+  function addLog(type, delta){
+    const arr = JSON.parse(localStorage.getItem(LOG)||"[]");
+    arr.unshift({t: nowStr(), type, delta});
+    localStorage.setItem(LOG, JSON.stringify(arr.slice(0,50)));
+  }
+  function pushHistory(item){
+    const arr = JSON.parse(localStorage.getItem(HIS)||"[]");
+    arr.unshift(item);
+    localStorage.setItem(HIS, JSON.stringify(arr.slice(0,10)));
+    renderHistory();
+  }
+  function renderHistory(){
+    const arr = JSON.parse(localStorage.getItem(HIS)||"[]");
+    document.getElementById("history").innerHTML = arr.map(x =>
+      `<tr><td>${x.t}</td><td>${x.bust.toFixed(2)}x</td><td>${x.result}</td></tr>`
+    ).join("");
+  }
+
+  // 生成爆点：偏向低倍数（更像真实 crash 的体验）
+  function genBust(){
+    const r = Math.random();
+    // 大多数在 1.0~3.0，偶尔高一点
+    let b = 1 + Math.pow(r, 2.6) * 12;
+    if (Math.random() < 0.02) b = 10 + Math.random()*40; // 极少数超高
+    return Math.max(1.01, Math.min(b, 60));
+  }
+
+  function setStatus(s){ document.getElementById("status").textContent = s; }
+  function setMsg(s){ document.getElementById("msg").textContent = s; }
+
+  function placeBet(){
+    if(running) return;
+    const stake = parseInt(document.getElementById("stake").value||"0",10);
+    if(!stake || stake<=0){ alert("请输入下注点数"); return; }
+    const bal = getBal();
+    if(stake > bal){ alert("余额不足"); return; }
+
+    autoCash = null;
+    const a = (document.getElementById("auto").value||"").trim();
+    if(a){
+      const ax = Number(a);
+      if(!isFinite(ax) || ax < 1.01) { alert("自动倍率要 >= 1.01"); return; }
+      autoCash = ax;
+    }
+
+    betStake = stake;
+    cashed = false;
+    bustAt = genBust();
+    current = 1.00;
+
+    setBal(bal - stake);
+    addLog("Crash Bet", `-${stake}`);
+    document.getElementById("bust").textContent = "?";
+    document.getElementById("btnBet").disabled = true;
+    document.getElementById("btnCash").disabled = false;
+
+    running = true;
+    setStatus("FLYING...");
+    tick();
+    interval = setInterval(tick, 80);
+  }
+
+  function tick(){
+    // 倍率增长（先快后慢）
+    const inc = 0.01 + (0.06 / (1 + current*0.35));
+    current = +(current + inc).toFixed(2);
+    document.getElementById("mult").textContent = current.toFixed(2) + "x";
+
+    if(autoCash && !cashed && current >= autoCash){
+      cashout(true);
+      return;
+    }
+
+    if(current >= bustAt){
+      bust();
+    }
+  }
+
+  function cashout(isAuto=false){
+    if(!running || cashed) return;
+    cashed = true;
+
+    const win = Math.floor(betStake * current);
+    const bal = getBal();
+    setBal(bal + win);
+    addLog("Crash Cashout", `+${win}`);
+
+    clearInterval(interval);
+    running = false;
+    document.getElementById("btnBet").disabled = false;
+    document.getElementById("btnCash").disabled = true;
+
+    document.getElementById("bust").textContent = bustAt.toFixed(2) + "x";
+    setStatus(isAuto ? "AUTO CASHOUT ✅" : "CASHOUT ✅");
+    setMsg(`赢得 ${win} 点（倍率 ${current.toFixed(2)}x）`);
+    pushHistory({t:nowStr(), bust:bustAt, result:`WIN +${win}`});
+  }
+
+  function bust(){
+    clearInterval(interval);
+    running = false;
+    document.getElementById("btnBet").disabled = false;
+    document.getElementById("btnCash").disabled = true;
+
+    document.getElementById("bust").textContent = bustAt.toFixed(2) + "x";
+    setStatus("BUST 💥");
+    setMsg(`爆了！本局输掉 ${betStake} 点`);
+    pushHistory({t:nowStr(), bust:bustAt, result:`LOSE -${betStake}`});
+  }
+
+  // init
+  setBal(getBal());
+  renderHistory();
+</script>
+</body>
+</html>
