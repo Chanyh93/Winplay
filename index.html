@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>MZ PLAY</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="brand">MZ PLAY <span class="badge">WEB</span></div>
+      <div class="nav-links">
+        <a class="pill" href="./index.html">Lobby</a>
+        <a class="pill" href="./wallet.html">Wallet</a>
+        <a class="pill" href="./deposit.html">Deposit</a>
+        <a class="pill" href="./crash.html">Crash</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="hero">
+      <div class="card">
+        <div class="h1">黑金大厅 · Crash & Wingo</div>
+        <div class="muted">点数娱乐版（充值买点数，点数不可提现）。</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" onclick="location.href='./crash.html'">进入 Crash</button>
+          <button class="btn btn-ghost" onclick="location.href='./wallet.html'">查看 Wallet</button>
+        </div>
+        <div class="small" style="margin-top:10px">
+          提示：你现在用的是本地点数系统（浏览器存储）。后面你要接真正后端再升级。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <div class="muted">当前点数</div>
+            <div class="kpi" id="bal">0</div>
+          </div>
+          <button class="btn" onclick="location.href='./deposit.html'">充值买点数</button>
+        </div>
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0">
+        <div class="small">
+          试玩用：默认给你 5000 点数（第一次打开自动发放）。
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="game">
+        <h3>🚀 Crash</h3>
+        <div class="muted">预测倍率，提前 Cashout。</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" onclick="location.href='./crash.html'">Play</button>
+        </div>
+      </div>
+
+      <div class="game">
+        <h3>🎯 Wingo（UI占位）</h3>
+        <div class="muted">1m / 3m / 5m（下一步我给你做逻辑）。</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-ghost" onclick="alert('Wingo 下一步做：先把UI做完整 + 每分钟开奖')">Open</button>
+        </div>
+      </div>
+
+      <div class="game">
+        <h3>👑 VIP / Tasks</h3>
+        <div class="muted">签到任务、等级、返利（下一步加）。</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-ghost" onclick="location.href='./wallet.html#vip'">View</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer small">
+      合规提示：本网站为点数娱乐演示版，不提供现金提现或真钱赌博服务。
+    </div>
+  </div>
+
+<script>
+  const KEY = "mz_balance";
+  function getBal(){
+    let b = parseInt(localStorage.getItem(KEY) || "0", 10);
+    if (!localStorage.getItem(KEY)) {
+      b = 5000; // first time gift
+      localStorage.setItem(KEY, String(b));
+    }
+    return b;
+  }
+  document.getElementById("bal").textContent = getBal();
+</script>
+</body>
+</html>
