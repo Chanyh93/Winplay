@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login - Winplay</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="brand"><span class="logo">W</span> WINPLAY <span class="badge">AUTH</span></div>
+      <div class="nav-links">
+        <a class="pill" href="./index.html">Lobby</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="hero">
+      <div class="card">
+        <h2 style="margin:0 0 6px">登录</h2>
+        <div class="muted">输入邮箱 + 密码。</div>
+        <div style="margin-top:12px">
+          <div class="small">Email</div>
+          <input class="input" id="lemail" placeholder="you@example.com"/>
+        </div>
+        <div style="margin-top:12px">
+          <div class="small">Password</div>
+          <input class="input" id="lpass" type="password" placeholder="******"/>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" onclick="login()">Login</button>
+          <button class="btn btn-ghost" onclick="location.href='./index.html'">Back</button>
+        </div>
+        <div class="small" id="lmsg" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 6px">注册</h2>
+        <div class="muted">注册成功默认送 5000 点数。</div>
+        <div style="margin-top:12px">
+          <div class="small">Email</div>
+          <input class="input" id="remail" placeholder="you@example.com"/>
+        </div>
+        <div style="margin-top:12px">
+          <div class="small">Password</div>
+          <input class="input" id="rpass" type="password" placeholder="至少 4 位"/>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" onclick="reg()">Create account</button>
+        </div>
+        <div class="small" id="rmsg" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="footer small">
+      合规提示：Winplay 为点数娱乐演示版，不提供现金提现或真钱赌博服务。
+    </div>
+  </div>
+
+<script>
+  const USERS="wp_users";
+  const SESSION="wp_session";
+
+  function loadUsers(){ return JSON.parse(localStorage.getItem(USERS)||"[]"); }
+  function saveUsers(arr){ localStorage.setItem(USERS, JSON.stringify(arr)); }
+  function setSession(email){ localStorage.setItem(SESSION, JSON.stringify({email, t:Date.now()})); }
+  function getSession(){ return JSON.parse(localStorage.getItem(SESSION)||"null"); }
+
+  // very simple hash (demo only)
+  function hash(s){
+    let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))>>>0; }
+    return String(h);
+  }
+
+  function reg(){
+    const email = (document.getElementById("remail").value||"").trim().toLowerCase();
+    const pass = (document.getElementById("rpass").value||"").trim();
+    if(!email.includes("@")) return (document.getElementById("rmsg").textContent="请输入正确邮箱");
+    if(pass.length<4) return (document.getElementById("rmsg").textContent="密码至少 4 位");
+
+    const users = loadUsers();
+    if(users.find(u=>u.email===email)) return (document.getElementById("rmsg").textContent="邮箱已存在");
+
+    users.push({email, pass:hash(pass), balance:5000, createdAt:new Date().toISOString()});
+    saveUsers(users);
+    setSession(email);
+    location.href="./index.html";
+  }
+
+  function login(){
+    const email = (document.getElementById("lemail").value||"").trim().toLowerCase();
+    const pass = (document.getElementById("lpass").value||"").trim();
+    const users = loadUsers();
+    const u = users.find(x=>x.email===email && x.pass===hash(pass));
+    if(!u) return (document.getElementById("lmsg").textContent="账号或密码错误");
+    setSession(email);
+    location.href="./index.html";
+  }
+
+  const s = getSession();
+  if(s){ document.getElementById("lmsg").textContent = "你已登录：" + s.email; }
+</script>
+</body>
+</html>
