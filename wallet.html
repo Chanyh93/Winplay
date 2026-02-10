@@ -3,17 +3,19 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Wallet - MZ PLAY</title>
+  <title>Wallet - Winplay</title>
   <link rel="stylesheet" href="./style.css"/>
 </head>
 <body>
   <div class="nav">
     <div class="nav-inner">
-      <div class="brand">MZ PLAY <span class="badge">WALLET</span></div>
+      <div class="brand"><span class="logo">W</span> WINPLAY <span class="badge">WALLET</span></div>
       <div class="nav-links">
         <a class="pill" href="./index.html">Lobby</a>
         <a class="pill" href="./deposit.html">Deposit</a>
         <a class="pill" href="./crash.html">Crash</a>
+        <a class="pill" href="./wingo.html">Wingo</a>
+        <a class="pill" href="./auth.html">Account</a>
       </div>
     </div>
   </div>
@@ -22,88 +24,85 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
+          <div class="muted">登录账号</div>
+          <div class="kpi" id="email">—</div>
+        </div>
+        <div>
           <div class="muted">点数余额</div>
           <div class="kpi" id="bal">0</div>
         </div>
-        <div class="row">
-          <button class="btn" onclick="location.href='./deposit.html'">充值</button>
-          <button class="btn btn-ghost" onclick="resetDemo()">重置试玩</button>
-        </div>
       </div>
-      <div class="small" style="margin-top:10px">
-        这版先用浏览器存储点数（演示用）。你要接“手动审核充值”后台时我再帮你升级到真正数据库。
-      </div>
-    </div>
-
-    <div class="card" id="vip" style="margin-top:14px">
-      <div class="h1" style="font-size:22px;margin:0">VIP & Tasks（演示）</div>
-      <div class="muted">每日签到送点数，提高留存。</div>
       <div class="row" style="margin-top:12px">
-        <button class="btn" onclick="daily()">每日签到 +200</button>
+        <button class="btn" onclick="location.href='./deposit.html'">充值</button>
+        <button class="btn btn-ghost" onclick="daily()">每日签到 +200</button>
+        <button class="btn btn-danger" onclick="logout()">退出登录</button>
       </div>
       <div class="small" id="msg" style="margin-top:10px"></div>
     </div>
 
     <div class="card" style="margin-top:14px">
-      <div class="h1" style="font-size:22px;margin:0">最近记录</div>
-      <table class="table" id="logTable">
-        <thead>
-          <tr><th>时间</th><th>类型</th><th>变化</th></tr>
-        </thead>
-        <tbody></tbody>
+      <h2 style="margin:0 0 6px">记录（最近 50 条）</h2>
+      <table class="table">
+        <thead><tr><th>时间</th><th>类型</th><th>变化</th></tr></thead>
+        <tbody id="rows"></tbody>
       </table>
-      <div class="small">记录保存在浏览器本地。</div>
     </div>
   </div>
 
 <script>
-  const BAL="mz_balance";
-  const LOG="mz_log";
-  const SIGN="mz_last_sign";
+  const USERS="wp_users";
+  const SESSION="wp_session";
+  const LOGS="wp_logs";
+  const SIGN="wp_sign";
 
-  function nowStr(){ return new Date().toLocaleString(); }
-  function getBal(){ return parseInt(localStorage.getItem(BAL)||"0",10); }
-  function setBal(v){ localStorage.setItem(BAL,String(v)); document.getElementById("bal").textContent=v; }
-  function addLog(type, delta){
-    const arr = JSON.parse(localStorage.getItem(LOG)||"[]");
-    arr.unshift({t: nowStr(), type, delta});
-    localStorage.setItem(LOG, JSON.stringify(arr.slice(0,50)));
-    renderLog();
+  function loadUsers(){ return JSON.parse(localStorage.getItem(USERS)||"[]"); }
+  function saveUsers(arr){ localStorage.setItem(USERS, JSON.stringify(arr)); }
+  function getSession(){ return JSON.parse(localStorage.getItem(SESSION)||"null"); }
+  function logout(){ localStorage.removeItem(SESSION); location.href="./auth.html"; }
+
+  function currentUser(){
+    const s=getSession(); if(!s) return null;
+    return loadUsers().find(u=>u.email===s.email) || null;
   }
-  function renderLog(){
-    const arr = JSON.parse(localStorage.getItem(LOG)||"[]");
-    const tb = document.querySelector("#logTable tbody");
-    tb.innerHTML = arr.map(x=>`<tr><td>${x.t}</td><td>${x.type}</td><td>${x.delta}</td></tr>`).join("");
-  }
-  function ensureInit(){
-    if(!localStorage.getItem(BAL)) localStorage.setItem(BAL,"5000");
-    setBal(getBal());
-    renderLog();
+  function updateUser(u){
+    const users=loadUsers();
+    const i=users.findIndex(x=>x.email===u.email);
+    users[i]=u; saveUsers(users);
   }
 
-  function resetDemo(){
-    localStorage.setItem(BAL,"5000");
-    localStorage.setItem(LOG,"[]");
-    localStorage.removeItem(SIGN);
-    ensureInit();
-    alert("已重置为 5000 点数");
+  function addLog(email, type, delta){
+    const arr = JSON.parse(localStorage.getItem(LOGS)||"[]");
+    arr.unshift({t:new Date().toLocaleString(), email, type, delta});
+    localStorage.setItem(LOGS, JSON.stringify(arr.slice(0,200)));
+  }
+
+  function render(){
+    const u=currentUser();
+    if(!u) return location.href="./auth.html";
+    document.getElementById("email").textContent = u.email;
+    document.getElementById("bal").textContent = u.balance;
+
+    const arr = JSON.parse(localStorage.getItem(LOGS)||"[]").filter(x=>x.email===u.email).slice(0,50);
+    document.getElementById("rows").innerHTML = arr.map(x =>
+      `<tr><td>${x.t}</td><td>${x.type}</td><td>${x.delta}</td></tr>`
+    ).join("");
   }
 
   function daily(){
+    const u=currentUser(); if(!u) return location.href="./auth.html";
+    const key = SIGN + "_" + u.email;
     const today = new Date().toDateString();
-    const last = localStorage.getItem(SIGN);
-    if(last === today){
-      document.getElementById("msg").textContent = "今天已签到，明天再来。";
-      return;
-    }
-    localStorage.setItem(SIGN, today);
-    const b = getBal() + 200;
-    setBal(b);
-    addLog("Daily Sign", "+200");
-    document.getElementById("msg").textContent = "签到成功 +200 点数";
+    const last = localStorage.getItem(key);
+    if(last === today){ document.getElementById("msg").textContent="今天已签到，明天再来。"; return; }
+    localStorage.setItem(key, today);
+    u.balance += 200;
+    updateUser(u);
+    addLog(u.email, "Daily Sign", "+200");
+    document.getElementById("msg").textContent="签到成功 +200";
+    render();
   }
 
-  ensureInit();
+  render();
 </script>
 </body>
 </html>
