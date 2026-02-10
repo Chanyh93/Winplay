@@ -7,50 +7,81 @@
   --gold:#ffb300;
   --gold2:#ffd36a;
   --line:rgba(255,255,255,.08);
+  --danger:#ff4d4d;
+  --ok:#3ddc97;
 }
 
 *{box-sizing:border-box}
 body{
-  margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(255,179,0,.22), transparent 60%),
-              radial-gradient(900px 500px at 90% 0%, rgba(91,120,255,.18), transparent 55%),
+  margin:0;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  background: radial-gradient(1100px 560px at 18% -10%, rgba(255,179,0,.20), transparent 60%),
+              radial-gradient(900px 520px at 92% 0%, rgba(91,120,255,.16), transparent 56%),
               var(--bg);
   color:var(--text);
 }
-
 a{color:inherit; text-decoration:none}
-.container{max-width:1100px; margin:0 auto; padding:18px}
+.container{max-width:1100px;margin:0 auto;padding:18px}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+
 .nav{
-  position:sticky; top:0; z-index:10;
+  position:sticky;top:0;z-index:10;
   background:rgba(7,10,20,.72);
   backdrop-filter: blur(10px);
   border-bottom:1px solid var(--line);
 }
-.nav-inner{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 18px}
-.brand{display:flex; align-items:center; gap:10px; font-weight:900; letter-spacing:.6px}
-.badge{font-size:12px; padding:3px 8px; border:1px solid var(--line); border-radius:999px; color:var(--gold2)}
-.nav-links{display:flex; gap:10px; flex-wrap:wrap}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.6px}
+.brand .logo{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(180deg, rgba(255,179,0,.95), rgba(255,179,0,.55));
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#111;font-weight:1000;
+}
+.badge{font-size:12px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;color:var(--gold2)}
+.nav-links{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .pill{
-  padding:8px 12px; border:1px solid var(--line); border-radius:999px;
+  padding:8px 12px;border:1px solid var(--line);border-radius:999px;
   background:rgba(255,255,255,.03);
 }
 .pill:hover{border-color:rgba(255,179,0,.35)}
-.hero{
-  display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; margin-top:14px;
-}
+.kpi{font-weight:1000;font-size:20px}
+.muted{color:var(--muted)}
+.small{font-size:12px;color:var(--muted)}
+
 .card{
   background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
   border:1px solid var(--line);
   border-radius:16px;
   padding:16px;
 }
-.h1{font-size:34px; margin:0 0 8px}
-.muted{color:var(--muted)}
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:14px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+}
+
+.game{
+  border-radius:16px;padding:14px;
+  background:linear-gradient(180deg, rgba(17,27,58,.9), rgba(15,22,48,.7));
+  border:1px solid var(--line);
+  position:relative;overflow:hidden;
+}
+.game:before{
+  content:"";position:absolute;inset:-60px -60px auto auto;width:180px;height:180px;
+  background:radial-gradient(circle, rgba(255,179,0,.35), transparent 60%);
+  transform:rotate(25deg);
+}
+.game h3{margin:0 0 6px}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .btn{
-  display:inline-flex; align-items:center; justify-content:center;
-  padding:12px 14px; border-radius:12px; border:1px solid rgba(255,179,0,.35);
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:12px 14px;border-radius:12px;
+  border:1px solid rgba(255,179,0,.35);
   background:linear-gradient(180deg, rgba(255,179,0,.95), rgba(255,179,0,.72));
-  color:#111; font-weight:800; cursor:pointer;
+  color:#111;font-weight:900;cursor:pointer;
 }
 .btn:active{transform:translateY(1px)}
 .btn-ghost{
@@ -58,32 +89,24 @@ a{color:inherit; text-decoration:none}
   border:1px solid var(--line);
   color:var(--text);
 }
-.grid{
-  display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-top:14px;
+.btn-danger{
+  background:rgba(255,77,77,.15);
+  border:1px solid rgba(255,77,77,.35);
+  color:var(--text);
 }
-.game{
-  border-radius:16px; padding:14px;
-  background:linear-gradient(180deg, rgba(17,27,58,.9), rgba(15,22,48,.7));
-  border:1px solid var(--line);
-  position:relative; overflow:hidden;
-}
-.game:before{
-  content:""; position:absolute; inset:-60px -60px auto auto; width:160px; height:160px;
-  background:radial-gradient(circle, rgba(255,179,0,.35), transparent 60%);
-  transform:rotate(25deg);
-}
-.game h3{margin:0 0 6px}
-.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-.kpi{font-weight:900}
 .input{
-  width:100%; padding:12px; border-radius:12px; border:1px solid var(--line);
-  background:rgba(0,0,0,.25); color:var(--text);
+  width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(0,0,0,.25);color:var(--text);
 }
-.table{width:100%; border-collapse:collapse; margin-top:12px}
-.table th,.table td{border-bottom:1px solid var(--line); padding:10px; text-align:left; font-size:14px}
-.small{font-size:12px; color:var(--muted)}
-.footer{opacity:.8; padding:24px 18px; border-top:1px solid var(--line); margin-top:20px}
-@media (max-width:900px){
-  .hero{grid-template-columns:1fr}
-  .grid{grid-template-columns:1fr}
+.table{width:100%;border-collapse:collapse;margin-top:12px}
+.table th,.table td{border-bottom:1px solid var(--line);padding:10px;text-align:left;font-size:14px}
+
+.tag{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;padding:4px 10px;border-radius:999px;
+  border:1px solid var(--line);background:rgba(255,255,255,.03);
 }
+.tag.ok{border-color:rgba(61,220,151,.35);color:rgba(61,220,151,.95)}
+.tag.bad{border-color:rgba(255,77,77,.35);color:rgba(255,77,77,.95)}
+
+.footer{opacity:.85;padding:24px 18px;border-top:1px solid var(--line);margin-top:20px}
