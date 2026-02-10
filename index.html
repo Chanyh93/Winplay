@@ -1,20 +1,24 @@
+
 <!doctype html>
 <html lang="zh">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>MZ PLAY</title>
+  <title>Winplay</title>
   <link rel="stylesheet" href="./style.css"/>
 </head>
 <body>
   <div class="nav">
     <div class="nav-inner">
-      <div class="brand">MZ PLAY <span class="badge">WEB</span></div>
+      <div class="brand"><span class="logo">W</span> WINPLAY <span class="badge">LOBBY</span></div>
       <div class="nav-links">
         <a class="pill" href="./index.html">Lobby</a>
         <a class="pill" href="./wallet.html">Wallet</a>
         <a class="pill" href="./deposit.html">Deposit</a>
         <a class="pill" href="./crash.html">Crash</a>
+        <a class="pill" href="./wingo.html">Wingo</a>
+        <a class="pill" href="./admin.html">Admin</a>
+        <a class="pill" href="./auth.html" id="authBtn">Login</a>
       </div>
     </div>
   </div>
@@ -22,74 +26,109 @@
   <div class="container">
     <div class="hero">
       <div class="card">
-        <div class="h1">黑金大厅 · Crash & Wingo</div>
-        <div class="muted">点数娱乐版（充值买点数，点数不可提现）。</div>
-        <div class="row" style="margin-top:12px">
-          <button class="btn" onclick="location.href='./crash.html'">进入 Crash</button>
-          <button class="btn btn-ghost" onclick="location.href='./wallet.html'">查看 Wallet</button>
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <div class="kpi" style="font-size:34px">WINPLAY é»éå¤§å</div>
+            <div class="muted">Crash + Wingoï¼ç¹æ°å¨±ä¹çï¼åå¼ä¹°ç¹æ°ï¼ç¹æ°ä¸å¯æç°ï¼ã</div>
+            <div class="small" id="who" style="margin-top:8px"></div>
+          </div>
+          <div class="tag ok" id="statusTag">READY</div>
         </div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn" onclick="go('./crash.html')">è¿å¥ Crash</button>
+          <button class="btn btn-ghost" onclick="go('./wingo.html')">è¿å¥ Wingo</button>
+          <button class="btn btn-ghost" onclick="go('./wallet.html')">æ¥ç Wallet</button>
+        </div>
+
         <div class="small" style="margin-top:10px">
-          提示：你现在用的是本地点数系统（浏览器存储）。后面你要接真正后端再升级。
+          æç¤ºï¼åç¨æµè§å¨æ¬å°çå®ç°ç»å½/ç¹æ°/è®¢åãä½ è¦åçº§ææå¡å¨åå°æ¶åæ¥ Node + æ°æ®åºã
         </div>
       </div>
 
       <div class="card">
-        <div class="row" style="justify-content:space-between">
-          <div>
-            <div class="muted">当前点数</div>
-            <div class="kpi" id="bal">0</div>
-          </div>
-          <button class="btn" onclick="location.href='./deposit.html'">充值买点数</button>
+        <div class="muted">ç¹æ°ä½é¢</div>
+        <div class="kpi" id="bal">0</div>
+        <hr/>
+        <div class="row">
+          <button class="btn" onclick="go('./deposit.html')">åå¼ä¹°ç¹æ°</button>
+          <button class="btn btn-ghost" onclick="logout()">éåºç»å½</button>
         </div>
-        <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0">
-        <div class="small">
-          试玩用：默认给你 5000 点数（第一次打开自动发放）。
-        </div>
+        <div class="small" style="margin-top:10px">æªç»å½æ¶ä¼è¦æ±åç»å½ã</div>
       </div>
     </div>
 
     <div class="grid">
       <div class="game">
-        <h3>🚀 Crash</h3>
-        <div class="muted">预测倍率，提前 Cashout。</div>
+        <h3>ð Crash</h3>
+        <div class="muted">æå Cashoutï¼åçè¶é«é£é©è¶å¤§ã</div>
         <div class="row" style="margin-top:12px">
-          <button class="btn" onclick="location.href='./crash.html'">Play</button>
+          <button class="btn" onclick="go('./crash.html')">Play</button>
         </div>
       </div>
 
       <div class="game">
-        <h3>🎯 Wingo（UI占位）</h3>
-        <div class="muted">1m / 3m / 5m（下一步我给你做逻辑）。</div>
+        <h3>ð¯ Wingo 1m</h3>
+        <div class="muted">åè®¡æ¶å¼å¥ï¼ä¸æ³¨ç¹æ°ï¼èªå¨ç»ç®ã</div>
         <div class="row" style="margin-top:12px">
-          <button class="btn btn-ghost" onclick="alert('Wingo 下一步做：先把UI做完整 + 每分钟开奖')">Open</button>
+          <button class="btn" onclick="go('./wingo.html')">Play</button>
         </div>
       </div>
 
       <div class="game">
-        <h3>👑 VIP / Tasks</h3>
-        <div class="muted">签到任务、等级、返利（下一步加）。</div>
+        <h3>ð³ Deposit â Admin å®¡æ ¸</h3>
+        <div class="muted">æäº¤è®¢åå· + åæ§é¾æ¥ï¼ç®¡çåä¸é®éè¿å ç¹æ°ã</div>
         <div class="row" style="margin-top:12px">
-          <button class="btn btn-ghost" onclick="location.href='./wallet.html#vip'">View</button>
+          <button class="btn btn-ghost" onclick="go('./deposit.html')">Deposit</button>
+          <button class="btn btn-ghost" onclick="go('./admin.html')">Admin</button>
         </div>
       </div>
     </div>
 
     <div class="footer small">
-      合规提示：本网站为点数娱乐演示版，不提供现金提现或真钱赌博服务。
+      åè§æç¤ºï¼Winplay ä¸ºç¹æ°å¨±ä¹æ¼ç¤ºçï¼ä¸æä¾ç°éæç°æçé±èµåæå¡ã
     </div>
   </div>
 
 <script>
-  const KEY = "mz_balance";
-  function getBal(){
-    let b = parseInt(localStorage.getItem(KEY) || "0", 10);
-    if (!localStorage.getItem(KEY)) {
-      b = 5000; // first time gift
-      localStorage.setItem(KEY, String(b));
-    }
-    return b;
+  const USERS="wp_users";
+  const SESSION="wp_session";
+
+  function loadUsers(){ return JSON.parse(localStorage.getItem(USERS)||"[]"); }
+  function saveUsers(arr){ localStorage.setItem(USERS, JSON.stringify(arr)); }
+  function getSession(){ return JSON.parse(localStorage.getItem(SESSION)||"null"); }
+  function setSession(email){ localStorage.setItem(SESSION, JSON.stringify({email, t:Date.now()})); }
+  function currentUser(){
+    const s=getSession(); if(!s) return null;
+    return loadUsers().find(u=>u.email===s.email) || null;
   }
-  document.getElementById("bal").textContent = getBal();
+  function requireLogin(){
+    if(!getSession()) location.href="./auth.html";
+  }
+  function go(url){
+    if(url.endsWith("admin.html")) return location.href=url;
+    // require login for wallet/deposit/games
+    if(["./wallet.html","./deposit.html","./crash.html","./wingo.html"].includes(url)) requireLogin();
+    location.href=url;
+  }
+  function logout(){
+    localStorage.removeItem(SESSION);
+    location.href="./auth.html";
+  }
+
+  const u = currentUser();
+  if(u){
+    document.getElementById("bal").textContent = u.balance;
+    document.getElementById("who").textContent = "å·²ç»å½ï¼" + u.email;
+    document.getElementById("authBtn").textContent = "Account";
+    document.getElementById("statusTag").textContent = "ONLINE";
+    document.getElementById("statusTag").className = "tag ok";
+  }else{
+    document.getElementById("bal").textContent = "â";
+    document.getElementById("who").textContent = "ä½ è¿æªç»å½ï¼è¯·å Login";
+    document.getElementById("statusTag").textContent = "OFFLINE";
+    document.getElementById("statusTag").className = "tag bad";
+  }
 </script>
 </body>
 </html>
