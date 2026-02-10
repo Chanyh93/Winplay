@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Admin - Winplay</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="brand"><span class="logo">W</span> WINPLAY <span class="badge">ADMIN</span></div>
+      <div class="nav-links">
+        <a class="pill" href="./index.html">Lobby</a>
+        <a class="pill" href="./deposit.html">Deposit</a>
+        <a class="pill" href="./wallet.html">Wallet</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card" id="gate">
+      <h2 style="margin:0 0 6px">管理员登录</h2>
+      <div class="muted">演示版：admin 密码写在前端（只适合测试）。正式上线要换成真正服务器后台。</div>
+      <div style="margin-top:12px">
+        <div class="small">Admin Password</div>
+        <input class="input" id="apass" type="password" placeholder="请输入管理员密码"/>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" onclick="enter()">Enter</button>
+      </div>
+      <div class="small" id="amsg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" id="panel" style="display:none">
+      <h2 style="margin:0 0 6px">待审核充值订单</h2>
+      <div class="muted">通过后：用户自动加点数（RM * 100）。</div>
+      <table class="table" style="margin-top:10px">
+        <thead>
+          <tr><th>时间</th><th>订单号</th><th>用户</th><th>金额</th><th>点数</th><th>回执</th><th>操作</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="small" id="msg" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+<script>
+  const ADMIN_SESSION="wp_admin";
+  const ADMIN_PASS="123456"; // ✅ 你要改成自己的（测试用）
+  const USERS="wp_users";
+  const DEPS="wp_deposits";
+  const LOGS="wp_logs";
+
+  function loadUsers(){ return JSON.parse(localStorage.getItem(USERS)||"[]"); }
+  function saveUsers(arr){ localStorage.setItem(USERS, JSON.stringify(arr)); }
+  function addLog(email, type, delta){
+    const arr = JSON.parse(localStorage.getItem(LOGS)||"[]");
+    arr.unshift({t:new Date().toLocaleString(), email, type, delta});
+    localStorage.setItem(LOGS, JSON.stringify(arr.slice(0,200)));
+  }
+
+  function enter(){
+    const p = (document.getElementById("apass").value||"").trim();
+    if(p !== ADMIN_PASS){
+      document.getElementById("amsg").textContent="密码错误";
+      return;
+    }
+    localStorage.setItem(ADMIN_SESSION, "1");
+    showPanel();
+  }
+
+  function showPanel(){
+    document.getElementById("gate").style.display="none";
+    document.getElementById("panel").style.display="block";
+    render();
+  }
+
+  function approve(orderNo){
+    const deps = JSON.parse(localStorage.getItem(DEPS)||"[]");
+    const dep = deps.find(d=>d.orderNo===orderNo);
+    if(!dep || dep.status!=="PENDING") return;
+
+    // update deposit status
+    dep.status="APPROVED";
+    localStorage.setItem(DEPS, JSON.stringify(deps));
+
+    // add points to user
+    const users = loadUsers();
+    const u = users.find(x=>x.email===dep.email);
+    if(u){
+      u.balance += dep.points;
+      saveUsers(users);
+      addLog(u.email, "Deposit Approved", `+${dep.points}`);
+    }
+    document.getElementById("msg").textContent = `已通过：${orderNo}`;
+    render();
+  }
+
+  function reject(orderNo){
+    const deps = JSON.parse(localStorage.getItem(DEPS)||"[]");
+    const dep = deps.find(d=>d.orderNo===orderNo);
+    if(!dep || dep.status!=="PENDING") return;
+    dep.status="REJECTED";
+    localStorage.setItem(DEPS, JSON.stringify(deps));
+    document.getElementById("msg").textContent = `已拒绝：${orderNo}`;
+    render();
+  }
+
+  function render(){
+    const deps = JSON.parse(localStorage.getItem(DEPS)||"[]").filter(d=>d.status==="PENDING");
+    document.getElementById("rows").innerHTML = deps.map(d=>{
+      const link = d.receipt ? `<a class="pill" href="${d.receipt}" target="_blank">View</a>` : `<span class="small">—</span>`;
+      return `<tr>
+        <td>${d.t}</td>
+        <td>${d.orderNo}</td>
+        <td>${d.email}</td>
+        <td>RM${d.amt}</td>
+        <td>${d.points}</td>
+        <td>${link}</td>
+        <td>
+          <button class="btn" onclick="approve('${d.orderNo}')">Approve</button>
+          <button class="btn btn-danger" onclick="reject('${d.orderNo}')">Reject</button>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  if(localStorage.getItem(ADMIN_SESSION)==="1"){ showPanel(); }
+</script>
+</body>
+</html>
