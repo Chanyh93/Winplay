@@ -9,7 +9,7 @@
 <body>
   <div class="nav">
     <div class="nav-inner">
-      <div class="brand"><span class="logo">W</span> WINPLAY <span class="badge">WINGO 1M</span></div>
+      <div class="brand"><span class="logo">W</span> WINPLAY <span class="badge">WINGO</span></div>
       <div class="nav-links">
         <a class="pill" href="./index.html">Lobby</a>
         <a class="pill" href="./wallet.html">Wallet</a>
@@ -27,22 +27,42 @@
         </div>
         <div style="text-align:right">
           <div class="muted">倒计时</div>
-          <div class="kpi" id="timer">60</div>
-        </div>
-      </div>
-      <hr/>
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <div class="muted">本局期号</div>
-          <div class="kpi" id="round">—</div>
-        </div>
-        <div style="text-align:right">
-          <div class="muted">上期开奖结果</div>
-          <div class="kpi" id="last">—</div>
+          <div class="kpi" id="timer">--</div>
         </div>
       </div>
 
-      <div style="margin-top:12px" class="row">
+      <hr/>
+
+      <div class="row" style="justify-content:space-between; align-items:flex-end">
+        <div>
+          <div class="muted">模式</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn btn-ghost" onclick="setMode(30)">30s</button>
+            <button class="btn btn-ghost" onclick="setMode(60)">60s</button>
+            <button class="btn btn-ghost" onclick="setMode(300)">5m</button>
+            <span class="tag" id="modeTag">--</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="muted">本局期号</div>
+          <div class="kpi" id="round">—</div>
+        </div>
+      </div>
+
+      <div class="row" style="justify-content:space-between; margin-top:12px">
+        <div>
+          <div class="muted">上期开奖结果</div>
+          <div class="kpi" id="last">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="muted">本局我的下注</div>
+          <div class="kpi" id="mybet">—</div>
+        </div>
+      </div>
+
+      <hr/>
+
+      <div class="row">
         <div style="flex:1;min-width:220px">
           <div class="small">下注点数</div>
           <input class="input" id="stake" placeholder="例如 100" inputmode="numeric"/>
@@ -50,27 +70,35 @@
       </div>
 
       <div class="row" style="margin-top:12px">
-        <button class="btn" onclick="bet('BIG')">下注 大（5-9） x2</button>
-        <button class="btn btn-ghost" onclick="bet('SMALL')">下注 小（0-4） x2</button>
+        <button class="btn" onclick="betSide('BIG')">下注 大（5-9）x2</button>
+        <button class="btn btn-ghost" onclick="betSide('SMALL')">下注 小（0-4）x2</button>
       </div>
+
+      <div class="small" style="margin-top:12px">号码下注（命中 x10）</div>
+      <div class="row" id="numBtns" style="margin-top:8px"></div>
+
       <div class="small" id="msg" style="margin-top:10px"></div>
     </div>
 
     <div class="card" style="margin-top:14px">
       <h2 style="margin:0 0 6px">最近 10 期</h2>
       <table class="table">
-        <thead><tr><th>期号</th><th>结果</th><th>你的下注</th><th>结算</th></tr></thead>
+        <thead><tr><th>期号</th><th>结果</th><th>我的下注</th><th>结算</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
+      <div class="small">说明：这是“全站共用”的开奖进程（不管你开不开页面都会按时间推进）。</div>
     </div>
   </div>
 
 <script>
+  // ====== Storage keys ======
   const USERS="wp_users";
   const SESSION="wp_session";
   const LOGS="wp_logs";
-  const WKEY="wp_wingo";
+  const WKEY="wp_wingo_v2";          // wingo state (global)
+  const MODEKEY="wp_wingo_mode";     // chosen mode seconds
 
+  // ====== User utils ======
   function loadUsers(){ return JSON.parse(localStorage.getItem(USERS)||"[]"); }
   function saveUsers(arr){ localStorage.setItem(USERS, JSON.stringify(arr)); }
   function getSession(){ return JSON.parse(localStorage.getItem(SESSION)||"null"); }
@@ -86,115 +114,237 @@
   function addLog(email, type, delta){
     const arr=JSON.parse(localStorage.getItem(LOGS)||"[]");
     arr.unshift({t:new Date().toLocaleString(), email, type, delta});
-    localStorage.setItem(LOGS, JSON.stringify(arr.slice(0,200)));
+    localStorage.setItem(LOGS, JSON.stringify(arr.slice(0,300)));
   }
 
-  function state(){
-    return JSON.parse(localStorage.getItem(WKEY)||"null") || {
-      round: 1,
-      endsAt: Date.now() + 60000,
-      lastResult: null,
-      history: [],
-      bets: {} // email -> {round, side, stake}
-    };
-  }
-  function save(s){ localStorage.setItem(WKEY, JSON.stringify(s)); }
-
-  function ensure(){
-    const u=currentUser();
-    if(!u) location.href="./auth.html";
-    document.getElementById("bal").textContent = u.balance;
-  }
-
-  function bet(side){
-    const u=currentUser(); if(!u) return location.href="./auth.html";
-    const st = state();
-    const stake = parseInt(document.getElementById("stake").value||"0",10);
-    if(!stake || stake<=0) return alert("请输入下注点数");
-    if(stake > u.balance) return alert("余额不足");
-
-    // only allow 1 bet per round per user (demo rule)
-    st.bets[u.email] = {round: st.round, side, stake};
-    u.balance -= stake;
-    updateUser(u);
-    addLog(u.email, "Wingo Bet", `-${stake} (${side})`);
-    save(st);
-
-    document.getElementById("bal").textContent = u.balance;
-    document.getElementById("msg").textContent = `已下注：${side} / ${stake} 点（本局 ${st.round}）`;
-  }
-
-  function settleIfNeeded(){
-    const st = state();
-    const now = Date.now();
-    if(now < st.endsAt) return;
-
-    // draw result 0-9
-    const result = Math.floor(Math.random()*10);
-    const roundId = st.round;
-
-    // settle bets
-    const users = loadUsers();
-    const payouts = [];
-    for(const email in st.bets){
-      const b = st.bets[email];
-      if(b.round !== roundId) continue;
-      const u = users.find(x=>x.email===email);
-      if(!u) continue;
-
-      const winSide = (result >=5) ? "BIG" : "SMALL";
-      let settle = `LOSE -${b.stake}`;
-      if(b.side === winSide){
-        const win = b.stake * 2;
-        u.balance += win;
-        addLog(email, "Wingo Win", `+${win} (${winSide})`);
-        settle = `WIN +${win}`;
-      }else{
-        addLog(email, "Wingo Lose", `-${b.stake}`);
-      }
-      payouts.push({email, bet:`${b.side}/${b.stake}`, settle});
+  // ====== Deterministic RNG for a round (so refresh doesn't change result) ======
+  function hash32(str){
+    let h = 2166136261;
+    for (let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
     }
-    saveUsers(users);
+    return h>>>0;
+  }
+  function rngRound(roundId){
+    // xorshift32
+    let x = hash32("WINPLAY_WINGO_" + String(roundId));
+    x ^= x << 13; x >>>= 0;
+    x ^= x >>> 17; x >>>= 0;
+    x ^= x << 5; x >>>= 0;
+    return x >>> 0;
+  }
+  function resultForRound(roundId){
+    return rngRound(roundId) % 10; // 0-9
+  }
 
-    // write history
-    st.history.unshift({round: roundId, result, payouts});
-    st.history = st.history.slice(0,10);
-    st.lastResult = result;
-
-    // next round
-    st.round += 1;
-    st.endsAt = Date.now() + 60000;
-    st.bets = {};
-    save(st);
+  // ====== Wingo global schedule (keeps running by wall-clock) ======
+  // roundId and endAt are derived from epoch + mode.
+  function getMode(){
+    const m = parseInt(localStorage.getItem(MODEKEY) || "60", 10);
+    return [30,60,300].includes(m) ? m : 60;
+  }
+  function setMode(seconds){
+    localStorage.setItem(MODEKEY, String(seconds));
+    // reset local display (bets remain, but now follows new schedule)
     render();
   }
 
-  function render(){
-    const u=currentUser(); if(!u) return;
-    const st = state();
-    document.getElementById("round").textContent = st.round;
-    document.getElementById("last").textContent = st.lastResult===null ? "—" : st.lastResult;
-    document.getElementById("bal").textContent = u.balance;
+  function wingoState(){
+    return JSON.parse(localStorage.getItem(WKEY)||"null") || {
+      lastRoundId: null,
+      lastResult: null,
+      history: [],     // [{roundId, result, settlements:{email:{bet,settle}} }]
+      bets: {}         // email -> {roundId, type:'SIDE'|'NUM', pick:'BIG'|'SMALL'|0..9, stake}
+    };
+  }
+  function saveState(s){ localStorage.setItem(WKEY, JSON.stringify(s)); }
 
+  function currentRoundInfo(){
+    const mode = getMode();
+    const now = Date.now();
+    const roundId = Math.floor(now / (mode*1000)); // global round id based on time
+    const endAt  = (roundId + 1) * mode * 1000;
+    const leftMs = Math.max(0, endAt - now);
+    return { mode, roundId, endAt, leftSec: Math.ceil(leftMs/1000) };
+  }
+
+  // ====== Bet rules / payouts ======
+  const PAY_SIDE = 2; // x2
+  const PAY_NUM  = 10; // x10 (you can change)
+
+  function formatBet(b){
+    if(!b) return "—";
+    if(b.type === "SIDE") return `${b.pick} / ${b.stake}`;
+    return `NUM ${b.pick} / ${b.stake}`;
+  }
+
+  // ====== Fix the “double bet”漏洞 ======
+  // One bet per user per round: if already bet -> block and do not deduct.
+  function alreadyBetThisRound(st, email, roundId){
+    const b = st.bets[email];
+    return b && b.roundId === roundId;
+  }
+
+  function betSide(side){
+    placeBet({type:"SIDE", pick:side});
+  }
+  function betNum(n){
+    placeBet({type:"NUM", pick:n});
+  }
+
+  function placeBet({type, pick}){
+    const u = currentUser();
+    if(!u) return location.href="./auth.html";
+
+    const stake = parseInt(document.getElementById("stake").value||"0", 10);
+    if(!stake || stake<=0) return alert("请输入下注点数");
+    if(stake > u.balance) return alert("余额不足");
+
+    const info = currentRoundInfo();
+    const st = wingoState();
+
+    // ✅漏洞修复：已下注就不能再下注
+    if(alreadyBetThisRound(st, u.email, info.roundId)){
+      document.getElementById("msg").textContent = "你本局已经下注了，不能重复下注。";
+      return;
+    }
+
+    // deduct once
+    u.balance -= stake;
+    updateUser(u);
+
+    // store bet
+    st.bets[u.email] = { roundId: info.roundId, type, pick, stake };
+    saveState(st);
+
+    addLog(u.email, "Wingo Bet", `-${stake} (${type==="SIDE"?pick:"NUM "+pick})`);
+
+    document.getElementById("bal").textContent = u.balance;
+    document.getElementById("msg").textContent = `下注成功：${type==="SIDE"?pick:"号码 "+pick} / ${stake} 点（本局 ${info.roundId}）`;
+    render();
+  }
+
+  // ====== Settlement (triggered when time crosses round boundary) ======
+  function settleIfNeeded(){
+    const st = wingoState();
+    const info = currentRoundInfo();
+
+    // if we already processed the previous round, nothing to do
+    // We settle the round that just ended: endedRoundId = info.roundId - 1
+    const endedRoundId = info.roundId - 1;
+    if(endedRoundId < 0) return;
+
+    if(st.lastRoundId === endedRoundId) return; // already settled
+
+    // settle ended round
+    const res = resultForRound(endedRoundId);
+
+    const users = loadUsers();
+    const settlements = {}; // email -> {bet, settle}
+
+    for(const email in st.bets){
+      const b = st.bets[email];
+      if(b.roundId !== endedRoundId) continue;
+
+      const u = users.find(x=>x.email===email);
+      if(!u) continue;
+
+      let settleText = `LOSE -${b.stake}`;
+
+      if(b.type === "SIDE"){
+        const winSide = (res >= 5) ? "BIG" : "SMALL";
+        if(b.pick === winSide){
+          const win = b.stake * PAY_SIDE;
+          u.balance += win;
+          settleText = `WIN +${win}`;
+          addLog(email, "Wingo Win", `+${win} (${winSide})`);
+        } else {
+          addLog(email, "Wingo Lose", `-${b.stake}`);
+        }
+      } else {
+        // NUM
+        if(Number(b.pick) === res){
+          const win = b.stake * PAY_NUM;
+          u.balance += win;
+          settleText = `WIN +${win}`;
+          addLog(email, "Wingo Win", `+${win} (NUM ${res})`);
+        } else {
+          addLog(email, "Wingo Lose", `-${b.stake}`);
+        }
+      }
+
+      settlements[email] = { bet: formatBet(b), settle: settleText };
+    }
+
+    // remove old bets for ended round (but keep possible future rounds none)
+    // Since we only allow 1 bet per user per round, and we want next round clean:
+    const newBets = {};
+    for(const email in st.bets){
+      const b = st.bets[email];
+      if(b.roundId >= info.roundId) newBets[email] = b; // keep current/future (normally only current)
+    }
+    st.bets = newBets;
+
+    // push history
+    st.history.unshift({ roundId: endedRoundId, result: res, settlements });
+    st.history = st.history.slice(0,10);
+    st.lastRoundId = endedRoundId;
+    st.lastResult = res;
+
+    saveUsers(users);
+    saveState(st);
+  }
+
+  // ====== UI render ======
+  function ensure(){
+    const u=currentUser();
+    if(!u) location.href="./auth.html";
+  }
+
+  function render(){
+    ensure();
+    settleIfNeeded();
+
+    const u=currentUser();
+    const st=wingoState();
+    const info=currentRoundInfo();
+
+    document.getElementById("bal").textContent = u.balance;
+    document.getElementById("timer").textContent = info.leftSec;
+    document.getElementById("round").textContent = info.roundId;
+    document.getElementById("last").textContent = st.lastResult === null ? "—" : st.lastResult;
+
+    // my bet in current round
+    const my = st.bets[u.email];
+    if(my && my.roundId === info.roundId){
+      document.getElementById("mybet").textContent = formatBet(my);
+    }else{
+      document.getElementById("mybet").textContent = "—";
+    }
+
+    const mode = getMode();
+    document.getElementById("modeTag").textContent = mode===300 ? "5m" : (mode + "s");
+
+    // history table
     const rows = st.history.map(h=>{
-      const my = (h.payouts||[]).find(p=>p.email===u.email);
-      const myBet = my ? my.bet : "—";
-      const mySet = my ? my.settle : "—";
-      return `<tr><td>${h.round}</td><td>${h.result}</td><td>${myBet}</td><td>${mySet}</td></tr>`;
+      const mine = (h.settlements||{})[u.email];
+      const myBet = mine ? mine.bet : "—";
+      const mySet = mine ? mine.settle : "—";
+      return `<tr><td>${h.roundId}</td><td>${h.result}</td><td>${myBet}</td><td>${mySet}</td></tr>`;
     }).join("");
     document.getElementById("rows").innerHTML = rows || `<tr><td colspan="4" class="small">暂无记录</td></tr>`;
   }
 
-  function tick(){
-    const st = state();
-    const left = Math.max(0, Math.ceil((st.endsAt - Date.now())/1000));
-    document.getElementById("timer").textContent = left;
-    settleIfNeeded();
-  }
+  // build number buttons
+  const nb = document.getElementById("numBtns");
+  nb.innerHTML = Array.from({length:10}, (_,i)=>(
+    `<button class="btn btn-ghost" onclick="betNum(${i})">${i}</button>`
+  )).join("");
 
-  ensure();
+  // init mode tag + start loop
   render();
-  setInterval(tick, 250);
+  setInterval(render, 250);
 </script>
 </body>
 </html>
